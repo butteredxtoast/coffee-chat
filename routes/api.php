@@ -16,3 +16,4 @@ Route::patch('matches/{match}/met', [MatchesController::class, 'markAsMet']);
 // Slack routes
 Route::get('/slack/members', [SlackController::class, 'getMembers']);
 Route::post('/slack/sync', [SlackController::class, 'syncChannelMembers']);
+Route::post('/slack/command', [SlackController::class, 'handleCommand']);

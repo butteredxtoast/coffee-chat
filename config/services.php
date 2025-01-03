@@ -31,7 +31,8 @@ return [
     'slack' => [
         'bot_token' => env('SLACK_BOT_TOKEN'),
         'channel_id' => env('SLACK_CHANNEL_ID'),
-        'team_id' => env('SLACK_TEAM_ID')
+        'team_id' => env('SLACK_TEAM_ID'),
+        'signing_secret' => env('SLACK_SIGNING_SECRET'),
     ],
 
 ];

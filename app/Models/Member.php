@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @method static Member|null updateOrCreate(array $attributes, array $values = [])
  * @method static Builder whereNotIn(string $column, mixed $values)
+ * @method static Builder where($column, $operator = null, $value = null)
  *
  * @property string $name
  * @property string|null $notes
@@ -174,13 +175,25 @@ class Member extends Model
     public function hasMetWith(Member $otherMember): bool
     {
         return Matches::where(function ($query) use ($otherMember) {
-            $query->where('member1_id', $this->id)
-                ->where('member2_id', $otherMember->id)
-                ->where('met', true);
-        })->orWhere(function ($query) use ($otherMember) {
-            $query->where('member1_id', $otherMember->id)
-                ->where('member2_id', $this->id)
-                ->where('met', true);
-        })->exists();
+            $query->where(function ($q) use ($otherMember) {
+                $q->where('member1_id', $this->id)
+                    ->where(function ($inner) use ($otherMember) {
+                        $inner->where('member2_id', $otherMember->id)
+                            ->orWhere('member3_id', $otherMember->id);
+                    });
+            })->orWhere(function ($q) use ($otherMember) {
+                $q->where('member2_id', $this->id)
+                    ->where(function ($inner) use ($otherMember) {
+                        $inner->where('member1_id', $otherMember->id)
+                            ->orWhere('member3_id', $otherMember->id);
+                    });
+            })->orWhere(function ($q) use ($otherMember) {
+                $q->where('member3_id', $this->id)
+                    ->where(function ($inner) use ($otherMember) {
+                        $inner->where('member1_id', $otherMember->id)
+                            ->orWhere('member2_id', $otherMember->id);
+                    });
+            });
+        })->where('met', true)->exists();
     }
 }
