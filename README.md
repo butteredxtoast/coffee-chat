@@ -1,58 +1,76 @@
 # Coffee Chat
 
-A Laravel application that facilitates periodic matching of Slack channel members for informal chats.
-
-## Features
-
-- Automatic matching of members every 90 days
-- Slack integration for member synchronization and communication
-- Smart matching algorithm preventing repeat pairings
-- Automated DM creation for matched pairs
+Automated Slack member matching system built with Laravel.
 
 ## Setup
 
-1. Install dependencies:
+1. Environment setup:
 ```bash
+cp .env.example .env
 composer install
+php artisan key:generate
 ```
 
-2. Configure environment variables:
+2. Configure Slack:
 ```env
-SLACK_BOT_TOKEN=your-bot-token
-SLACK_CHANNEL_ID=your-channel-id
+SLACK_BOT_TOKEN=xoxb-your-token
+SLACK_CHANNEL_ID=C12345678
 ```
 
-3. Run migrations:
+3. Database setup:
 ```bash
-php artisan migrate
+sail artisan migrate
 ```
 
-4. Schedule the matching command in your crontab:
+4. Configure Xdebug:
+```env
+XDEBUG_MODE=debug
+XDEBUG_CONFIG="client_host=host.docker.internal start_with_request=yes"
+PHP_IDE_CONFIG="serverName=Docker"
+```
+
+5. Start containers:
 ```bash
-* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+sail up -d
 ```
 
-## API Routes
+## API Endpoints
 
+### Slack Operations
+- `GET /api/slack/members` - List channel members
+- `POST /api/slack/sync` - Sync channel members to database
+
+### Member Management
 - `GET /api/members` - List all members
-- `POST /api/members` - Register a new member
+- `POST /api/members` - Create member
+- `DELETE /api/members/{id}` - Remove member
+
+### Match Operations
 - `GET /api/matches` - View all matches
-- `PATCH /api/matches/{match}/met` - Mark a match as completed
+- `PATCH /api/matches/{match}/met` - Mark match as completed
 
-## Commands
+## Automated Matching
 
-- `php artisan app:match-slack-users` - Manually trigger the matching process
+Schedule runs quarterly via:
+```bash
+php artisan app:match-slack-users
+```
 
-## Required Slack Bot Permissions
-
+## Required Bot Permissions
 - `channels:read`
 - `chat:write`
 - `im:write`
 - `users:read`
 - `users:read.email`
 
-## Contributing
+## Development
 
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+Run tests:
+```bash
+sail artisan test
+```
+
+Debug with Xdebug in PHPStorm:
+1. Set breakpoints
+2. Start listening for PHP Debug connections
+3. Use browser extension or query parameter ?XDEBUG_SESSION=1
