@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Matches;
+use App\Services\MatchingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -12,10 +13,10 @@ class MatchesController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): JsonResponse
     {
         $matches = Matches::with(['member1', 'member2'])->get();
-        
+
         return response()->json($matches);
     }
 
@@ -41,16 +42,16 @@ class MatchesController extends Controller
         ]);
 
         $match = Matches::create($validated);
-        
+
         return response()->json($match, Response::HTTP_CREATED);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Matches $matches)
+    public function show(Matches $matches): JsonResponse
     {
-        return response()->json($match->load(['member1', 'member2']));
+        return response()->json($matches->load(['member1', 'member2']));
     }
 
     /**
@@ -64,7 +65,7 @@ class MatchesController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Matches $matches)
+    public function update(Request $request, Matches $match): JsonResponse
     {
         $validated = $request->validate([
             'met' => 'sometimes|boolean',
@@ -73,17 +74,17 @@ class MatchesController extends Controller
         ]);
 
         $match->update($validated);
-        
+
         return response()->json($match->load(['member1', 'member2']));
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Matches $matches)
+    public function destroy(Matches $match)
     {
         $match->delete();
-        
+
         return response()->noContent();
     }
 

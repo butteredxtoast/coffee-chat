@@ -20,8 +20,6 @@ class Member extends Model
 {
     use HasFactory;
 
-    public mixed $slack_id;
-    public mixed $id;
     protected $fillable = [
         'name',
         'pronouns',
