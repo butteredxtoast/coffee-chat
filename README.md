@@ -56,6 +56,7 @@ Schedule runs quarterly via:
 php artisan app:match-slack-users
 ```
 
+// ToDo: update bot permissions
 ## Required Bot Permissions
 - `channels:read`
 - `chat:write`
