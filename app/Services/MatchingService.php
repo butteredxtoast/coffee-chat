@@ -5,23 +5,31 @@ namespace App\Services;
 use App\Models\Member;
 use App\Models\Matches;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class MatchingService
 {
+    /**
+     * Creates matches between members who haven't met before
+     * @return Collection<int, Matches>
+     */
     public function createMatches(): Collection
     {
-        $availableMembers = Member::whereDoesntHave('currentMatch')->get();
+        /** @var EloquentCollection<int, Member> $availableMembers */
+        $availableMembers = Member::query()->whereDoesntHave('currentMatch')->get();
         $matches = new Collection();
 
         while ($availableMembers->count() >= 2) {
+            /** @var Member $member1 */
             $member1 = $availableMembers->shift();
 
-            $member2 = $availableMembers->first(function ($member) use ($member1) {
+            /** @var Member|null $member2 */
+            $member2 = $availableMembers->first(function (Member $member) use ($member1): bool {
                 return !$member1->hasMetWith($member);
             });
 
             if ($member2) {
-                $availableMembers = $availableMembers->filter(fn($m) => $m->id !== $member2->id);
+                $availableMembers = $availableMembers->filter(fn(Member $m) => $m->id !== $member2->id);
 
                 $match = Matches::create([
                     'member1_id' => $member1->id,

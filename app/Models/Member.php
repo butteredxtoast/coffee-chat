@@ -2,15 +2,26 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @method static Member|null updateOrCreate(array $attributes, array $values = [])
+ * @method static Builder whereNotIn(string $column, mixed $values)
+ *
+ * @property string $name
+ * @property string|null $notes
+ * @property string|null $slack_id
+ */
 class Member extends Model
 {
     use HasFactory;
 
+    public mixed $slack_id;
+    public mixed $id;
     protected $fillable = [
         'name',
         'pronouns',
@@ -21,13 +32,26 @@ class Member extends Model
         'email',
         'anniversary_year',
         'notes',
+        'slack_id',
+        'is_active'
     ];
 
     protected $casts = [
         'anniversary_year' => 'integer',
+        'is_active' => 'boolean'
     ];
 
     // Getters
+    private string $name;
+    private ?string $pronouns;
+    private ?string $city;
+    private ?string $preferred_contact_method;
+    private ?string $slack_handle;
+    private ?string $phone;
+    private string $email;
+    private ?int $anniversary_year;
+    private ?string $notes;
+
     public function getName(): string
     {
         return $this->name;
@@ -130,7 +154,6 @@ class Member extends Model
 
     // Relationships
     public function currentMatch(): HasOne
-
     {
         return $this->hasOne(Matches::class, 'member1_id')
             ->where('is_current', true)
