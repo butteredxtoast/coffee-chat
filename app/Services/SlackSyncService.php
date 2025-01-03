@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Member;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class SlackSyncService
@@ -18,7 +19,7 @@ class SlackSyncService
     /**
      * @throws ConnectionException
      */
-    public function syncMembers(string $channelId): void
+    public function syncMembers(string $channelId): bool
     {
         try {
             $slackMembers = $this->slack->getChannelMembers($channelId);
@@ -31,7 +32,7 @@ class SlackSyncService
                     [
                         'name' => $userInfo['real_name'] ?? $userInfo['name'],
                         'email' => $userInfo['profile']['email'] ?? null,
-                        'avatar' => $userInfo['profile']['image_192'] ?? null,
+                        'slack_handle' => $userInfo['profile']['display_name'] ?? null,
                         'is_active' => true
                     ]
                 );
@@ -41,6 +42,7 @@ class SlackSyncService
                 ->update(['is_active' => false]);
 
             Log::info('Slack member sync completed successfully');
+            return true;
         } catch (\Exception $e) {
             Log::error('Error syncing Slack members: ' . $e->getMessage());
             throw $e;
