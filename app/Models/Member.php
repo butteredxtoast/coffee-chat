@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -195,5 +196,11 @@ class Member extends Model
                     });
             });
         })->where('met', true)->exists();
+    }
+
+    public function metWith(): BelongsToMany
+    {
+        return $this->belongsToMany(Member::class, 'member_meetings', 'member_id', 'met_with_id')
+            ->withTimestamps('met_at', null);
     }
 }

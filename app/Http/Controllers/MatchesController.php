@@ -118,9 +118,18 @@ class MatchesController extends Controller
             'met_confirmed_at' => now()
         ]);
 
+        $match->member1->metWith()->attach($match->member2->id);
+        $match->member2->metWith()->attach($match->member1->id);
+
+        if ($match->member3_id) {
+            $match->member1->metWith()->attach($match->member3->id);
+            $match->member2->metWith()->attach($match->member3->id);
+            $match->member3->metWith()->attach([$match->member1->id, $match->member2->id]);
+        }
+
         return response()->json([
             'message' => 'Match marked as met',
-            'match' => $match->load(['member1', 'member2'])
+            'match' => $match->load(['member1', 'member2', 'member3'])
         ]);
     }
 }
