@@ -17,6 +17,7 @@ class Matches extends Model
     protected $fillable = [
         'member1_id',
         'member2_id',
+        'member3_id',
         'met',
         'is_current',
         'matched_at',
@@ -38,5 +39,10 @@ class Matches extends Model
     public function member2(): BelongsTo
     {
         return $this->belongsTo(Member::class, 'member2_id');
+    }
+
+    public function member3(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'member3_id');
     }
 }
