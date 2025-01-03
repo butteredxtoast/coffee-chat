@@ -46,7 +46,11 @@ class MatchSlackUsers extends Command
 
             // Create DMs and send messages
             foreach ($matches as $match) {
-                $dmChannel = $slack->createGroupDM([$match->member1, $match->member2]);
+                if ($dmChannel = $slack->createGroupDM([$match->member1->slack_id, $match->member2->slack_id])) {
+                    $slack->sendMessage($dmChannel, "You've been matched!");
+                } else {
+                    Log::error('Failed to create DM for match', ['match_id' => $match->id]);
+                }
 
                 if ($dmChannel) {
                     $slack->sendMatchMessage($dmChannel, $match->member1, $match->member2);

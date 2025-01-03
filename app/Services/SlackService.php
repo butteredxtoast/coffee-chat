@@ -38,13 +38,29 @@ class SlackService
     /**
      * @throws ConnectionException
      */
-    public function createGroupDM(array $users): string
+    public function createGroupDM(array $users): ?string
     {
-        $response = $this->client->post('conversations.open', [
-            'users' => implode(',', $users)
-        ]);
+        try {
+            $response = $this->client->post('conversations.open', [
+                'users' => implode(',', $users)
+            ]);
 
-        return $response->json('channel.id');
+            if (!$response->json('ok')) {
+                Log::error('Failed to create DM:', [
+                    'error' => $response->json('error'),
+                    'users' => $users
+                ]);
+                return null;
+            }
+
+            return $response->json('channel.id');
+        } catch (\Exception $e) {
+            Log::error('Error creating DM:', [
+                'error' => $e->getMessage(),
+                'users' => $users
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -102,7 +118,7 @@ class SlackService
 
     public function sendMatchMessage(string $channelId, Member $member1, Member $member2): bool
     {
-        $message = "You've been matched! Say hello to your new connection!\n\n";
+        $message = "Say hello to your new connection!\n\n";
 
         if ($member1->notes) {
             $message .= "{$member1->name} has this to say: {$member1->notes}\n";
