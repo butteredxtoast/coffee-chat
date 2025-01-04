@@ -86,7 +86,7 @@ class SlackService
         return $response->json('user', []);
     }
 
-    public function createMatchDM(Member $member1, Member $member2): ?string
+    public function createMatchDM(Member $member1, Member $member2, Member $member3): ?string
     {
         try {
             $response = $this->client->post('conversations.open', [
@@ -115,39 +115,29 @@ class SlackService
         }
     }
 
-
-    public function sendMatchMessage(string $channelId, Member $member1, Member $member2): bool
+    public function sendMatchMessage(string $channelId): bool
     {
-        $message = "Say hello to your new connection!\n\n";
-
-        if ($member1->notes) {
-            $message .= "{$member1->name} has this to say: {$member1->notes}\n";
-        }
-        if ($member2->notes) {
-            $message .= "{$member2->name} has this to say: {$member2->notes}\n";
-        }
+        $blocks = [
+            [
+                "type" => "section",
+                "text" => [
+                    "type" => "mrkdwn",
+                    "text" => "A new #np-coffee-chat connection begins! ✨ Coordinate your meetup here and enjoy discovering what you have in common. \n\nThe coffee's optional, but the conversation's guaranteed!"
+                ]
+            ]
+        ];
 
         try {
             $response = $this->client->post('chat.postMessage', [
                 'channel' => $channelId,
-                'text' => $message,
-                'unfurl_links' => false
+                'blocks' => $blocks
             ]);
 
-            if (!$response->json('ok')) {
-                Log::error('Failed to send match message:', [
-                    'error' => $response->json('error'),
-                    'channel' => $channelId
-                ]);
-                return false;
-            }
-
-            return true;
+            return $response->json('ok', false);
         } catch (\Exception $e) {
-            Log::error('Cannot send message - channel not accessible', [
-                'channel' => $channelId,
-                'members' => [$member1->id, $member2->id],
-                'error' => $e->getMessage()
+            Log::error('Cannot send message', [
+                'error' => $e->getMessage(),
+                'channel' => $channelId
             ]);
             return false;
         }

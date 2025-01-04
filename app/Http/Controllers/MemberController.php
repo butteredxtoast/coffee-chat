@@ -67,7 +67,7 @@ class MemberController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Member $member): JsonResponse  
+    public function update(Request $request, Member $member): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -105,9 +105,10 @@ class MemberController extends Controller
                     'id' => $match->id,
                     'member1' => $match->member1->name,
                     'member2' => $match->member2->name,
+                    'member3' => $match->member3 ? $match->member3->name : null,
                     'matched_at' => $match->matched_at
                 ];
-            }) 
+            })
         ]);
     }
 }

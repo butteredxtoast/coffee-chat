@@ -12,6 +12,8 @@ Route::post('members/match', [MemberController::class, 'match']);
 // Match routes
 Route::resource('matches', MatchesController::class);
 Route::patch('matches/{match}/met', [MatchesController::class, 'markAsMet']);
+Route::delete('matches/{match}', [MatchesController::class, 'destroy']);
+Route::delete('/matches', [MatchesController::class, 'destroyAll']);
 
 // Slack routes
 Route::get('/slack/members', [SlackController::class, 'getMembers']);

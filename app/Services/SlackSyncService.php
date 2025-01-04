@@ -27,11 +27,15 @@ class SlackSyncService
             foreach ($slackMembers as $slackId) {
                 $userInfo = $this->slack->getUserInfo($slackId);
 
+                if ($userInfo['is_bot'] || empty($userInfo['profile']['email'])) {
+                    continue;
+                }
+
                 Member::updateOrCreate(
                     ['slack_id' => $slackId],
                     [
                         'name' => $userInfo['real_name'] ?? $userInfo['name'],
-                        'email' => $userInfo['profile']['email'] ?? null,
+                        'email' => $userInfo['profile']['email'],
                         'slack_handle' => $userInfo['profile']['display_name'] ?? null,
                         'is_active' => true
                     ]

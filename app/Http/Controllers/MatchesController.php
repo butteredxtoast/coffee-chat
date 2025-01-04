@@ -15,7 +15,7 @@ class MatchesController extends Controller
      */
     public function index(): JsonResponse
     {
-        $matches = Matches::with(['member1', 'member2'])->get();
+        $matches = Matches::with(['member1', 'member2', 'member3'])->get();
 
         return response()->json($matches);
     }
@@ -36,6 +36,7 @@ class MatchesController extends Controller
         $validated = $request->validate([
             'member1_id' => 'required|exists:members,id',
             'member2_id' => 'required|exists:members,id|different:member1_id',
+            'member3_id' => 'nullable|exists:members,id|different:member1_id|different:member2_id',
             'matched_at' => 'required|date',
             'met' => 'boolean',
             'is_current' => 'boolean'
@@ -51,7 +52,7 @@ class MatchesController extends Controller
      */
     public function show(Matches $matches): JsonResponse
     {
-        return response()->json($matches->load(['member1', 'member2']));
+        return response()->json($matches->load(['member1', 'member2', 'member3']));
     }
 
     /**
@@ -75,17 +76,26 @@ class MatchesController extends Controller
 
         $match->update($validated);
 
-        return response()->json($match->load(['member1', 'member2']));
+        return response()->json($match->load(['member1', 'member2', 'member3']));
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Matches $match)
+    public function destroy(Matches $match): JsonResponse
     {
         $match->delete();
 
-        return response()->noContent();
+        return response()->json(['message' => 'Match deleted']);
+    }
+
+    /**
+     * Remove all resources from storage
+     */
+    public function destroyAll(): JsonResponse
+    {
+        Matches::query()->delete();
+        return response()->json(['message' => 'All matches deleted']);
     }
 
     /**
@@ -102,6 +112,7 @@ class MatchesController extends Controller
                     'id' => $match->id,
                     'member1' => $match->member1->name,
                     'member2' => $match->member2->name,
+                    'member3' => $match->member3 ? $match->member3->name : null,
                     'matched_at' => $match->matched_at
                 ];
             })
