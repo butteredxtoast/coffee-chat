@@ -119,7 +119,7 @@ class SlackService
     /**
      * @throws ConnectionException
      */
-    public function sendChannelSummary(string $channelId, Collection $matches): void
+    public function sendChannelSummary(string $channelId, \Illuminate\Support\Collection $matches): void
     {
         $blocks = [
             [

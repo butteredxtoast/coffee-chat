@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Member;
 use App\Services\GoogleSheetService;
 use App\Services\SlackService;
 use App\Services\SlackSyncService;
@@ -44,7 +45,7 @@ class MatchSlackUsers extends Command
 
             // Create new matches
             $matches = $matcher->createMatches();
-            Log::info(sprintf('Created %d matches', $matches->count()));
+            Log::info('Created matches', ['matches' => $matches->count()]);
 
             $sheetsUpdated = $sheets->appendMatches($matches);
 
@@ -58,10 +59,21 @@ class MatchSlackUsers extends Command
 
             // Create DMs and send messages
             foreach ($matches as $match) {
-                if ($dmChannel = $slack->createGroupDM([$match->member1->slack_id, $match->member2->slack_id, $match->member3->slack_id])) {
-                    $slack->sendMessage($dmChannel, "You've been matched!");
+                if ($dmChannel = $slack->createGroupDM([
+                    $match->member1?->slack_id,
+                    $match->member2?->slack_id,
+                    $match->member3?->slack_id
+                ])) {
+                    $slack->sendMatchMessage($dmChannel);
                 } else {
-                    Log::error('Failed to create DM for match', ['match_id' => $match->id]);
+                    Log::error('Failed to create DM', [
+                        'match_id' => $match->id,
+                        'members' => [
+                            $match->member1->slack_id,
+                            $match->member2->slack_id,
+                            $match->member3?->slack_id
+                        ]
+                    ]);
                 }
 
                 if ($dmChannel) {
@@ -74,7 +86,10 @@ class MatchSlackUsers extends Command
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            Log::error('Error during matching process: ' . $e->getMessage());
+            Log::error('Error during matching process', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return Command::FAILURE;
         }
     }

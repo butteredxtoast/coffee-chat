@@ -18,6 +18,7 @@ class MatchingService
         /** @var EloquentCollection<int, Member> $availableMembers */
         $availableMembers = Member::query()
             ->whereDoesntHave('currentMatch')
+            ->whereNotNull('slack_id')
             ->get()
             ->shuffle();
         $matches = new Collection();
