@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Member;
+use Google\Collection;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -113,6 +114,38 @@ class SlackService
 
             return null;
         }
+    }
+
+    /**
+     * @throws ConnectionException
+     */
+    public function sendChannelSummary(string $channelId, Collection $matches): void
+    {
+        $blocks = [
+            [
+                "type" => "section",
+                "text" => [
+                    "type" => "mrkdwn",
+                    "text" => "🎉 New coffee chat matches have been created! Check your DMs for introductions."
+                ]
+            ],
+            [
+                "type" => "actions",
+                "elements" => [
+                    [
+                        "type" => "button",
+                        "text" => ["type" => "plain_text", "text" => "View All Matches"],
+                        "url" => "https://docs.google.com/spreadsheets/d/" . config('services.google.sheets_id'),
+                        "action_id" => "view_matches"
+                    ]
+                ]
+            ]
+        ];
+
+        $this->client->post('chat.postMessage', [
+            'channel' => $channelId,
+            'blocks' => $blocks
+        ]);
     }
 
     public function sendMatchMessage(string $channelId): bool

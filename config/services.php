@@ -35,4 +35,8 @@ return [
         'signing_secret' => env('SLACK_SIGNING_SECRET'),
     ],
 
+    'google' => [
+        'sheets_id' => env('GOOGLE_SHEETS_ID'),
+        'credentials_path' => storage_path('app/google-service-account.json')
+    ]
 ];

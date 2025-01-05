@@ -16,7 +16,10 @@ class MatchingService
     public function createMatches(): Collection
     {
         /** @var EloquentCollection<int, Member> $availableMembers */
-        $availableMembers = Member::query()->whereDoesntHave('currentMatch')->get();
+        $availableMembers = Member::query()
+            ->whereDoesntHave('currentMatch')
+            ->get()
+            ->shuffle();
         $matches = new Collection();
 
         while ($availableMembers->count() >= 2) {

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\GoogleSheetService;
 use App\Services\SlackService;
 use App\Services\SlackSyncService;
 use App\Services\MatchingService;
@@ -30,7 +31,8 @@ class MatchSlackUsers extends Command
     public function handle(
         SlackService $slack,
         SlackSyncService $syncer,
-        MatchingService $matcher
+        MatchingService $matcher,
+        GoogleSheetService $sheets
     ): int
     {
         Log::info('Starting user matching process');
@@ -43,6 +45,16 @@ class MatchSlackUsers extends Command
             // Create new matches
             $matches = $matcher->createMatches();
             Log::info(sprintf('Created %d matches', $matches->count()));
+
+            $sheetsUpdated = $sheets->appendMatches($matches);
+
+            if ($sheetsUpdated) {
+                $slack->sendChannelSummary(
+                    config('services.slack.channel_id'),
+                    $matches,
+                    config('services.google.sheets_id')
+                );
+            }
 
             // Create DMs and send messages
             foreach ($matches as $match) {
