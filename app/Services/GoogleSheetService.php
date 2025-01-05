@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use Google\Client;
-use Google\Collection;
 use Google\Exception;
 use Google\Service\Sheets;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class GoogleSheetService
@@ -24,40 +24,74 @@ class GoogleSheetService
         $this->service = new Sheets($client);
     }
 
-    public function appendMatches(\Illuminate\Support\Collection $matches): bool
+    public function appendMatches(Collection $matches): bool
     {
+        try {
 //        if ($matches->isEmpty()) {
 //            Log::info('No matches to append to sheet');
-//            return true;  // Return success since there's nothing to do
+//            return true;
 //        }
 
-        try {
+            $quarter = ceil(now()->month / 3);
+            $values = [];
+            $requests = [];
 
-            $values = $matches->map(fn($match) => [
-                $match->matched_at->format('Y-m-d'),
-                $match->member1->name,
-                $match->member2->name,
-                $match->member3?->name ?? 'N/A'
-            ])->toArray();
+            $values[] = ["Q{$quarter} Match Session"];
 
-            $data = [
-                new Sheets\ValueRange([
-                    'range' => 'Matches!A:D',
-                    'values' => $values
-                ])
-            ];
+            foreach ($matches as $index => $match) {
+                $values[] = [
+                    $match->member1->name,
+                    $match->member1->pronouns ?? 'N/A',
+                    $match->member1->city ?? 'N/A',
+                    $match->member2->name,
+                    $match->member2->pronouns ?? 'N/A',
+                    $match->member2->city ?? 'N/A',
+                    $match->member3?->name ?? 'N/A',
+                    $match->member3?->pronouns ?? 'N/A',
+                    $match->member3?->city ?? 'N/A'
+                ];
 
-            $body = new Sheets\BatchUpdateValuesRequest([
-                'valueInputOption' => 'RAW',
-                'data' => $data
-            ]);
+                if ($index % 2 === 1) {
+                    $requests[] = [
+                        'repeatCell' => [
+                            'range' => [
+                                'startRowIndex' => count($values),
+                                'endRowIndex' => count($values) + 1,
+                                'startColumnIndex' => 0,
+                                'endColumnIndex' => 9
+                            ],
+                            'cell' => [
+                                'userEnteredFormat' => [
+                                    'backgroundColor' => [
+                                        'red' => 0.85,
+                                        'green' => 0.92,
+                                        'blue' => 0.99
+                                    ]
+                                ]
+                            ],
+                            'fields' => 'userEnteredFormat.backgroundColor'
+                        ]
+                    ];
+                }
+            }
 
             $this->service->spreadsheets_values->append(
                 config('services.google.sheets_id'),
-                'Sheet1!A:D',
+                'Sheet1!A:I',
                 new Sheets\ValueRange(['values' => $values]),
                 ['valueInputOption' => 'RAW', 'insertDataOption' => 'INSERT_ROWS']
             );
+
+            if (!empty($requests)) {
+                $batchUpdateRequest = new Sheets\BatchUpdateSpreadsheetRequest([
+                    'requests' => $requests
+                ]);
+
+                $this->service->spreadsheets->batchUpdate(
+                    config('services.google.sheets_id'),
+                    $batchUpdateRequest
+                );
+            }
 
             return true;
         } catch (\Exception $e) {
