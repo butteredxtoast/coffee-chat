@@ -1,77 +1,62 @@
-# Coffee Chat
+# Coffee Chat Bot
 
-Automated Slack member matching system built with Laravel.
+A Laravel application that facilitates quarterly coffee chats by matching Slack channel members and tracking their interactions.
+
+## Features
+- Automatic member sync from Slack channel
+- Random matching algorithm preventing repeat pairings
+- Supports 2-3 person matches
+- Automatic DM creation for matched groups
+- Match history tracking in Google Sheets
+- Slash command `/coffee-bot we met` for marking meetings complete
 
 ## Setup
 
-1. Environment setup:
+1. Install dependencies:
 ```bash
-cp .env.example .env
 composer install
-php artisan key:generate
 ```
 
-2. Configure Slack:
+2. Configure environment:
 ```env
 SLACK_BOT_TOKEN=xoxb-your-token
 SLACK_CHANNEL_ID=C12345678
+SLACK_SIGNING_SECRET=your-signing-secret
+GOOGLE_SHEETS_ID=your-sheet-id
 ```
 
-3. Database setup:
+3. Set up Google Sheets:
+- Create service account and download credentials
+- Save as `storage/app/google/google-service-account.json`
+- Share sheet with service account email
+
+4. Run migrations:
 ```bash
 sail artisan migrate
 ```
 
-4. Configure Xdebug:
-```env
-XDEBUG_MODE=debug
-XDEBUG_CONFIG="client_host=host.docker.internal start_with_request=yes"
-PHP_IDE_CONFIG="serverName=Docker"
-```
+## Usage
 
-5. Start containers:
+### Manual Match Trigger
 ```bash
-sail up -d
+sail artisan app:match-slack-users
 ```
 
-## API Endpoints
-
-### Slack Operations
-- `GET /api/slack/members` - List channel members
-- `POST /api/slack/sync` - Sync channel members to database
-
-### Member Management
-- `GET /api/members` - List all members
-- `POST /api/members` - Create member
-- `DELETE /api/members/{id}` - Remove member
-
-### Match Operations
-- `GET /api/matches` - View all matches
-- `PATCH /api/matches/{match}/met` - Mark match as completed
-
-## Automated Matching
-
-Schedule runs quarterly via:
+### Schedule Automatic Matching
+Add to crontab:
 ```bash
-php artisan app:match-slack-users
+* * * * * cd /path-to-project && php artisan schedule:run
 ```
 
-// ToDo: update bot permissions
-## Required Bot Permissions
+## Required Slack Bot Permissions
 - `channels:read`
 - `chat:write`
 - `im:write`
 - `users:read`
 - `users:read.email`
 
-## Development
-
-Run tests:
-```bash
-sail artisan test
-```
-
-Debug with Xdebug in PHPStorm:
-1. Set breakpoints
-2. Start listening for PHP Debug connections
-3. Use browser extension or query parameter ?XDEBUG_SESSION=1
+## API Routes
+- `GET /api/slack/members` - List channel members
+- `POST /api/slack/sync` - Sync members
+- `GET /api/matches` - View matches
+- `DELETE /api/matches` - Clear all matches
