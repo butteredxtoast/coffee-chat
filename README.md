@@ -50,10 +50,14 @@ Add to crontab:
 
 ## Required Slack Bot Permissions
 - `channels:read`
-- `chat:write`
+- `groups:read`
+- `im:read`
+- `mpim:read`
+- `channels:manage`
+- `groups:write`
 - `im:write`
-- `users:read`
-- `users:read.email`
+- `mpim:write`
+- `chat-write`
 
 ## API Routes
 - `GET /api/slack/members` - List channel members

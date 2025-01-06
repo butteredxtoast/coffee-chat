@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class GoogleSheetService
 {
+    const TEST_SHEET_NAME = 'Sheet1!A:I';
+    const NP_SHEET_NAME = 'Matches!A:I';
     private Sheets $service;
 
     /**
@@ -27,10 +29,10 @@ class GoogleSheetService
     public function appendMatches(Collection $matches): bool
     {
         try {
-//        if ($matches->isEmpty()) {
-//            Log::info('No matches to append to sheet');
-//            return true;
-//        }
+        if ($matches->isEmpty()) {
+            Log::info('No matches to append to sheet');
+            return true;
+        }
 
             $quarter = ceil(now()->month / 3);
             $values = [];
@@ -41,13 +43,10 @@ class GoogleSheetService
             foreach ($matches as $index => $match) {
                 $values[] = [
                     $match->member1->name,
-                    $match->member1->pronouns ?? 'N/A',
                     $match->member1->city ?? 'N/A',
                     $match->member2->name,
-                    $match->member2->pronouns ?? 'N/A',
                     $match->member2->city ?? 'N/A',
                     $match->member3?->name ?? 'N/A',
-                    $match->member3?->pronouns ?? 'N/A',
                     $match->member3?->city ?? 'N/A'
                 ];
 
@@ -77,7 +76,7 @@ class GoogleSheetService
 
             $this->service->spreadsheets_values->append(
                 config('services.google.sheets_id'),
-                'Sheet1!A:I',
+                self::NP_SHEET_NAME,
                 new Sheets\ValueRange(['values' => $values]),
                 ['valueInputOption' => 'RAW', 'insertDataOption' => 'INSERT_ROWS']
             );
