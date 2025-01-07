@@ -19,8 +19,22 @@ class GoogleSheetService
      */
     public function __construct()
     {
+        $credentials = [
+            'type' => config('services.google.type'),
+            'project_id' => config('services.google.project_id'),
+            'private_key_id' => config('services.google.private_key_id'),
+            'private_key' => str_replace('\n', "\n", config('services.google.private_key')),
+            'client_email' => config('services.google.client_email'),
+            'client_id' => config('services.google.client_id'),
+            'auth_uri' => config('services.google.auth_uri'),
+            'token_uri' => config('services.google.token_uri'),
+            'auth_provider_x509_cert_url' => config('services.google.auth_provider_cert_url'),
+            'client_x509_cert_url' => config('services.google.client_cert_url'),
+            'universe_domain' => config('services.google.universe_domain')
+        ];
+
         $client = new Client();
-        $client->setAuthConfig(config('services.google.credentials_path'));
+        $client->setAuthConfig($credentials);
         $client->addScope(Sheets::SPREADSHEETS);
 
         $this->service = new Sheets($client);
