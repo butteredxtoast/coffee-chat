@@ -27,7 +27,8 @@ class SlackSyncService
             foreach ($slackMembers as $slackId) {
                 $userInfo = $this->slack->getUserInfo($slackId);
 
-                if ($userInfo['is_bot'] || empty($userInfo['profile']['email'])) {
+                if ($userInfo['is_bot'] ?? $userInfo['user']['is_bot'] ?? false) {
+                    Log::info("made it into if");
                     continue;
                 }
 
