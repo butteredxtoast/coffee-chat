@@ -8,6 +8,7 @@ use App\Services\SlackService;
 use App\Services\SlackSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\ResponseFactory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -93,38 +94,102 @@ class SlackController extends Controller
             // Check if this is a button click
             if ($payload['type'] === 'block_actions') {
                 foreach ($payload['actions'] as $action) {
+                    $matchId = $action['value'];
+                    $match = Matches::find($matchId);
+
+                    if (!$match) {
+                        Log::error('Match not found', ['match_id' => $matchId]);
+                        return response('', 200);
+                    }
+
+                    $responseUrl = $payload['response_url'];
+
+                    // Handle "Confirm Meeting" action
                     if ($action['action_id'] === 'confirm_meeting') {
-                        $matchId = $action['value'];
+                        $match->update([
+                            'met' => true,
+                            'met_confirmed_at' => now()
+                        ]);
 
-                        // Find and update the match
-                        $match = Matches::find($matchId);
-                        if ($match) {
-                            $match->update([
-                                'met' => true,
-                                'met_confirmed_at' => now()
-                            ]);
+                        // Send acknowledgment with undo button
+                        Http::post($responseUrl, [
+                            'response_type' => 'ephemeral',
+                            'text' => "✅ Great! I've marked your coffee chat as complete.",
+                            'blocks' => [
+                                [
+                                    'type' => 'section',
+                                    'text' => [
+                                        'type' => 'mrkdwn',
+                                        'text' => "✅ Great! I've marked your coffee chat as complete. Thanks for letting me know!"
+                                    ]
+                                ],
+                                [
+                                    'type' => 'actions',
+                                    'elements' => [
+                                        [
+                                            'type' => 'button',
+                                            'text' => [
+                                                'type' => 'plain_text',
+                                                'text' => 'Undo',
+                                                'emoji' => true
+                                            ],
+                                            'style' => 'danger',
+                                            'value' => (string) $match->id,
+                                            'action_id' => 'undo_meeting'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]);
+                    }
 
-                            // Get the response_url from the payload
-                            $responseUrl = $payload['response_url'];
+                    // Handle "Undo Meeting" action
+                    else if ($action['action_id'] === 'undo_meeting') {
+                        $match->update([
+                            'met' => false,
+                            'met_confirmed_at' => null
+                        ]);
 
-                            // Send acknowledgment to Slack
-                            Http::post($responseUrl, [
-                                'response_type' => 'ephemeral',
-                                'text' => "✅ Great! I've marked your coffee chat as complete."
-                            ]);
-
-                            // Must return a 200 response immediately
-                            return response('', 200);
-                        }
+                        // Send confirmation of undo with option to re-confirm
+                        Http::post($responseUrl, [
+                            'response_type' => 'ephemeral',
+                            'text' => "⚠️ I've marked your coffee chat as incomplete.",
+                            'blocks' => [
+                                [
+                                    'type' => 'section',
+                                    'text' => [
+                                        'type' => 'mrkdwn',
+                                        'text' => "⚠️ I've marked your coffee chat as incomplete."
+                                    ]
+                                ],
+                                [
+                                    'type' => 'actions',
+                                    'elements' => [
+                                        [
+                                            'type' => 'button',
+                                            'text' => [
+                                                'type' => 'plain_text',
+                                                'text' => 'We did meet',
+                                                'emoji' => true
+                                            ],
+                                            'style' => 'primary',
+                                            'value' => (string) $match->id,
+                                            'action_id' => 'confirm_meeting'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]);
                     }
                 }
             }
 
-            // Default response
+            // Must return a 200 response immediately
             return response('', 200);
         } catch (\Exception $e) {
             Log::error('Error processing Slack interaction', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return response('', 200);
         }
