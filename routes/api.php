@@ -20,7 +20,7 @@ Route::delete('/matches', [MatchesController::class, 'destroyAll']);
 // Slack routes
 Route::get('/slack/members', [SlackController::class, 'getMembers']);
 Route::post('/slack/sync', [SlackController::class, 'syncChannelMembers']);
-Route::post('/slack/command', [SlackController::class, 'handleCommand']);
+//Route::post('/slack/command', [SlackController::class, 'handleCommand']);
 Route::post('/slack/interaction', [SlackController::class, 'handleInteraction']);
 
 Route::get('/slack/message/{memberId}', [SlackController::class, 'sendTestMessage']);

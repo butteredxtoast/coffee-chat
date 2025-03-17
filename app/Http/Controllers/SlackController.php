@@ -8,6 +8,8 @@ use App\Services\SlackService;
 use App\Services\SlackSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SlackController extends Controller
 {
@@ -39,9 +41,13 @@ class SlackController extends Controller
 
     public function handleCommand(Request $request): JsonResponse
     {
-//        if (!$this->verifySlackSignature($request)) {
-//            return response()->json(['error' => 'Invalid signature'], 401);
-//        }
+        Log::info('Received Slack interaction', [
+            'raw_payload' => $request->input('payload')
+        ]);
+
+        if (!$this->verifySlackSignature($request)) {
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
 
         $text = $request->get('text');
         $userId = $request->get('user_id');
@@ -77,41 +83,51 @@ class SlackController extends Controller
         return response()->json(['text' => 'I\'m sorry, I didn\'t understand that command. Try "met" instead.']);
     }
 
-    public function handleInteraction(Request $request): JsonResponse
+    public function handleInteraction(Request $request)
     {
-        // ToDo: Verify Slack request signature for security
+        try {
+            // Parse the payload
+            $payload = json_decode($request->input('payload'), true);
+            Log::info('Parsed payload', ['payload' => $payload]);
 
-        // Parse the payload
-        $payload = json_decode($request->input('payload'), true);
+            // Check if this is a button click
+            if ($payload['type'] === 'block_actions') {
+                foreach ($payload['actions'] as $action) {
+                    if ($action['action_id'] === 'confirm_meeting') {
+                        $matchId = $action['value'];
 
-        // Check if this is a button click for meeting confirmation
-        if ($payload['type'] === 'block_actions') {
-            foreach ($payload['actions'] as $action) {
-                if ($action['action_id'] === 'confirm_meeting') {
-                    $matchId = $action['value'];
+                        // Find and update the match
+                        $match = Matches::find($matchId);
+                        if ($match) {
+                            $match->update([
+                                'met' => true,
+                                'met_confirmed_at' => now()
+                            ]);
 
-                    // Mark the match as met
-                    $match = Matches::find($matchId);
-                    if ($match) {
-                        $match->update([
-                            'met' => true,
-                            'met_confirmed_at' => now()
-                        ]);
+                            // Get the response_url from the payload
+                            $responseUrl = $payload['response_url'];
 
-                        // Respond to the user
-                        return response()->json([
-                            'response_type' => 'ephemeral',
-                            'text' => "✅ Great! I've marked your coffee chat as complete. Thanks for letting me know!"
-                        ]);
+                            // Send acknowledgment to Slack
+                            Http::post($responseUrl, [
+                                'response_type' => 'ephemeral',
+                                'text' => "✅ Great! I've marked your coffee chat as complete."
+                            ]);
+
+                            // Must return a 200 response immediately
+                            return response('', 200);
+                        }
                     }
                 }
             }
-        }
 
-        return response()->json([
-            'response_type' => 'ephemeral',
-            'text' => "Sorry, I couldn't process that action."
-        ]);
+            // Default response
+            return response('', 200);
+        } catch (\Exception $e) {
+            Log::error('Error processing Slack interaction', [
+                'error' => $e->getMessage()
+            ]);
+            return response('', 200);
+        }
     }
 
     private function verifySlackSignature(Request $request): bool

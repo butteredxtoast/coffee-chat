@@ -64,3 +64,6 @@ sail artisan schedule:run
 - `POST /api/slack/sync` - Sync members
 - `GET /api/matches` - View matches
 - `DELETE /api/matches` - Clear all matches
+
+## Random
+- You'll be able to find your slack apps here: https://api.slack.com/apps
