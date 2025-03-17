@@ -96,9 +96,12 @@ class BackfillSlackChannelIds extends Command
         // Sort member IDs for consistent comparison
         sort($memberIds);
 
-        // Identify bot user ID from actual channels - more reliable than config
+        // Identify bot user ID from actual channels
         $botUserId = "U0877FS72CC"; // Hardcoded based on log analysis
         $this->info("Using bot ID: {$botUserId}");
+
+        $bestMatch = null;
+        $bestMatchSize = PHP_INT_MAX;
 
         foreach ($channels as $channel) {
             // Skip channels with no members
@@ -108,33 +111,37 @@ class BackfillSlackChannelIds extends Command
 
             // Filter out the bot ID from channel members
             $channelMembers = array_values(array_diff($channel['members'], [$botUserId]));
+            $channelId = $channel['id'];
 
             // Debug channel info
-            $this->info("Channel {$channel['id']} has " . count($channelMembers) . " members (excluding bot)");
+            $this->info("Channel {$channelId} has " . count($channelMembers) . " members (excluding bot)");
 
-            // For 2-person matches: Find only channels that have EXACTLY our two members
-            if (count($memberIds) == 2 && count($channelMembers) == 2) {
-                // Sort for consistent comparison
-                sort($channelMembers);
-
-                // Check if arrays are identical
-                if ($memberIds === $channelMembers) {
-                    $this->info("MATCH FOUND! Channel {$channel['id']} perfectly matches match ID {$matchId}");
-                    return $channel;
+            // Check if ALL match members are in this channel
+            $allMembersFound = true;
+            foreach ($memberIds as $memberId) {
+                if (!in_array($memberId, $channelMembers)) {
+                    $allMembersFound = false;
+                    break;
                 }
             }
 
-            // For 3-person matches
-            else if (count($memberIds) == 3 && count($channelMembers) == 3) {
-                // Sort for consistent comparison
-                sort($channelMembers);
+            // If all members are in this channel AND it's smaller than our current best match
+            if ($allMembersFound && count($channelMembers) < $bestMatchSize) {
+                $this->info("Found potential match: Channel {$channelId} with " . count($channelMembers) . " members");
+                $bestMatch = $channel;
+                $bestMatchSize = count($channelMembers);
 
-                // Check if arrays are identical
-                if ($memberIds === $channelMembers) {
-                    $this->info("MATCH FOUND! Channel {$channel['id']} perfectly matches match ID {$matchId}");
-                    return $channel;
+                // If we find a channel with exactly the right number of members, that's ideal
+                if (count($channelMembers) === count($memberIds)) {
+                    $this->info("PERFECT MATCH FOUND! Channel {$channelId} has exactly the right members");
+                    break;  // Exit loop - we found an exact match
                 }
             }
+        }
+
+        if ($bestMatch) {
+            $this->info("BEST MATCH: Channel {$bestMatch['id']} with {$bestMatchSize} members for match ID {$matchId}");
+            return $bestMatch;
         }
 
         return null;
