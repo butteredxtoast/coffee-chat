@@ -53,30 +53,22 @@ class MatchSlackUsers extends Command
                 $slack->sendChannelSummary(
                     config('services.slack.channel_id'),
                     $matches,
-                    config('services.google.sheets_id')
                 );
             }
 
             // Create DMs and send messages
             foreach ($matches as $match) {
-                if ($dmChannel = $slack->createGroupDM([
+                $memberIds = array_filter([
                     $match->member1?->slack_id,
                     $match->member2?->slack_id,
-                    $match->member3?->slack_id
-                ])) {
-                    $slack->sendMatchMessage($dmChannel);
-                } else {
-                    Log::error('Failed to create DM', [
-                        'match_id' => $match->id,
-                        'members' => [
-                            $match->member1->slack_id,
-                            $match->member2->slack_id,
-                            $match->member3?->slack_id
-                        ]
-                    ]);
-                }
+                    $match->member3?->slack_id ?? null,
+                ]);
+
+                $dmChannel = $slack->createGroupDM($memberIds);
 
                 if ($dmChannel) {
+                    $match->update(['slack_channel_id' => $dmChannel]);
+
                     $slack->sendMatchMessage($dmChannel);
                     Log::info('Created DM and send message', ['match_id' => $match->id]);
                 } else {

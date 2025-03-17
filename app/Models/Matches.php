@@ -18,6 +18,7 @@ class Matches extends Model
         'member1_id',
         'member2_id',
         'member3_id',
+        'slack_channel_id',
         'met',
         'is_current',
         'matched_at',
