@@ -66,4 +66,8 @@ sail artisan schedule:run
 - `DELETE /api/matches` - Clear all matches
 
 ## Random
-- You'll be able to find your slack apps here: https://api.slack.com/apps
+- You'll be able to find your Slack apps here: https://api.slack.com/apps
+- Whatever test sheet you're using needs to have a tab named `Matches`
+- `sail artisan migrate:fresh` will drop all tables and re-run migrations
+- `sail artisan app:match-slack-users` will match users
+- 
