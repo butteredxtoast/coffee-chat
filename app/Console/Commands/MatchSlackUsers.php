@@ -69,7 +69,7 @@ class MatchSlackUsers extends Command
                 if ($dmChannel) {
                     $match->update(['slack_channel_id' => $dmChannel]);
 
-                    $slack->sendMatchMessage($dmChannel);
+                    $slack->sendMatchMessage($dmChannel, $match);
                     Log::info('Created DM and send message', ['match_id' => $match->id]);
                 } else {
                     Log::error('Failed to create DM', ['match_id' => $match->id]);

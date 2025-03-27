@@ -127,9 +127,10 @@ class SlackService
     }
 
     /**
-     * @throws ConnectionException
+     * @param string $channelId The Slack channel ID for the match
+     * @return void
      */
-    public function sendChannelSummary(string $channelId, \Illuminate\Support\Collection $matches): void
+    public function sendChannelSummary(string $channelId): void
     {
         $blocks = [
             [
@@ -152,20 +153,74 @@ class SlackService
             ]
         ];
 
-        $this->client->post('chat.postMessage', [
-            'channel' => $channelId,
-            'blocks' => $blocks
-        ]);
+        try {
+            $this->client->post('chat.postMessage', [
+                'channel' => $channelId,
+                'blocks' => $blocks
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Cannot send message', [
+                'error' => $e->getMessage(),
+                'channel' => $channelId
+            ]);
+        }
     }
 
-    public function sendMatchMessage(string $channelId): bool
+    /**
+     * Send a message to a match group with a Google Calendar link
+     * @param string $channelId The Slack channel ID for the match
+     * @param Matches|null $match The match object containing member relations (optional)
+     * @return bool Whether the message was sent successfully
+     * @throws \DateMalformedStringException
+     */
+    public function sendMatchMessage(string $channelId, Matches $match = null): bool
     {
+        $emails = [];
+        $names = [];
+
+        $members = [];
+        if ($match) {
+            if ($match->member1) $members[] = $match->member1;
+            if ($match->member2) $members[] = $match->member2;
+            if ($match->member3) $members[] = $match->member3;
+        }
+
+        foreach ($members as $member) {
+            if (!empty($member->email)) {
+                $emails[] = $member->email;
+            }
+            $names[] = $member->name ?? ('User ' . $member->slack_id);
+        }
+
+        $participationNames = implode(', ', $names);
+
+        $calendarUrl = $this->buildGoogleCalendarUrl(
+            'NP Coffee Chat with ' . $participationNames,
+            'Get to know a fellow co-lead! ☕️',
+            $emails
+        );
+
         $blocks = [
             [
                 "type" => "section",
                 "text" => [
                     "type" => "mrkdwn",
                     "text" => "A new #np-coffee-chat connection begins! ✨ Coordinate your meetup here and enjoy discovering what you have in common. \n\nThe coffee's optional, but the conversation's guaranteed!"
+                ]
+            ],
+            [
+                "type" => "actions",
+                "elements" => [
+                    [
+                        "type" => "button",
+                        "text" => [
+                            "type" => "plain_text",
+                            "text" => "📅 Schedule a chat",
+                            "emoji" => true
+                        ],
+                        "url" => $calendarUrl,
+                        "action_id" => "schedule_coffee_chat"
+                    ]
                 ]
             ]
         ];
@@ -335,5 +390,41 @@ class SlackService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Build a Google Calendar URL with pre-filled event details
+     * @param string $title Event title
+     * @param string $description Event description
+     * @param array $guests Array of guest email addresses
+     * @param int $durationMinutes Event duration in minutes (default: 30)
+     * @return string Formatted Google Calendar URL
+     * @throws \DateMalformedStringException
+     */
+    private function buildGoogleCalendarUrl(string $title, string $description, array $guests, int $durationMinutes = 30): string
+    {
+        $baseUrl = 'https://calendar.google.com/calendar/render';
+
+        $startTime = new \DateTime('+2 days');
+        $startTime->setTime(10, 0, 0);
+
+        $endTime = clone $startTime;
+        $endTime->modify("+{$durationMinutes} minutes");
+
+        $formattedStart = $startTime->format('Ymd\THis\Z');
+        $formattedEnd = $endTime->format('Ymd\THis\Z');
+
+        $params = [
+            'action' => 'TEMPLATE',
+            'text' => $title,
+            'details' => $description,
+            'dates' => $formattedStart . '/' . $formattedEnd,
+        ];
+
+        if (!empty($guests)) {
+            $params['add'] = implode(',', $guests);
+        }
+
+        return $baseUrl . '?' . http_build_query($params);
     }
 }
